@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Farmer Ledger (Offline)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: 'Segoe UI',sans-serif; background: #f7fafc; margin: 0; padding: 0; color: #222;}
+    .container { max-width: 390px; margin: 32px auto; padding: 22px; background: #fff; border-radius: 18px; box-shadow: 0 2px 12px #ddd; }
+    .logo { display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+    .logo svg { width: 44px; height: 44px; margin-right: 12px; }
+    .farmer-header { background: #24a36e; color: #fff; text-align: center; font-size: 19px; margin-bottom: 8px; padding: 7px 0; border-radius: 8px;}
+    h2 { text-align: center; margin-bottom: 17px; color: #24a36e;}
+    .row { display: flex; gap: 10px; margin: 10px 0;}
+    .btn { flex: 1; padding: 14px 0; font-size: 20px; border-radius: 8px; border: none; cursor: pointer; background: #00bcd4; color: #fff; transition: background 0.2s;}
+    .btn:hover { background: #24a36e;}
+    .form { margin: 18px 0 10px 0;}
+    label { display: block; margin-bottom: 5px; font-size: 17px;}
+    input, select { width: 100%; padding: 10px; margin-bottom: 11px; border-radius: 8px; border: 1px solid #ccc; font-size: 18px; background: #f3f4f6;}
+    .profit-box { background: #e0ffe0; color: #097909; border-radius: 14px; padding: 20px 12px; margin: 20px 0 10px 0; font-size: 22px; text-align:center; border: 2px solid #b6e4b6;}
+    .loss-box { background: #ffe0e0; color: #d10000; border-radius: 14px; padding: 20px 12px; margin: 20px 0 10px 0; font-size: 22px; text-align:center; border: 2px solid #f4b6b6;}
+    .list-box { background: #e6f7ff; border-radius: 9px; padding: 7px 11px; margin-bottom:15px;}
+    .ledger-table { width: 100%; font-size: 16px; border-collapse: collapse; margin-top: 12px;}
+    .ledger-table th, .ledger-table td { border: 1px solid #ddd; padding: 8px; text-align: center;}
+    .ledger-table th { background: #f8f8ff;}
+    .del-btn { background: #ef4444; color: #fff; border: none; border-radius: 7px; padding: 4px 14px; cursor: pointer; font-size:16px;}
+    .del-btn:hover { background: #b91c1c;}
+    .voice-btn, .mic-btn { border: none; cursor: pointer; font-size:17px; border-radius:6px; padding: 6px 11px;}
+    .voice-btn { background: #fffbe9; color: #005c5c; }
+    .mic-btn { background: #e0e7ff; color: #005c5c; }
+    .mode-btn { background: #24a36e; }
+    .mode-btn.selected { background: #fbbf24; color: #222; }
+    .custom-reason { margin-top: -8px; }
+  </style>
+</head>
+<body>
+  <!-- Main App -->
+  <div class="container" id="mainContainer" style="display:none;">
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 38">
+        <path d="M4 30 Q10 10 34 8" stroke="#8B5C2B" stroke-width="4" fill="none"/>
+        <rect x="29" y="8" width="6" height="12" rx="3" fill="#A2D67B"/>
+        <circle cx="32" cy="22" r="3" fill="#FFD600"/>
+      </svg>
+      <span style="font-size:38px;">💰</span>
+    </div>
+    <div class="farmer-header" id="farmerHeader"></div>
+    <h2 id="titleMain"></h2>
+    <div class="row">
+      <button id="incomeModeBtn" class="btn mode-btn selected"></button>
+      <button id="expenseModeBtn" class="btn mode-btn"></button>
+      <button type="button" class="voice-btn" id="voiceModeBtn">🔊</button>
+      <button type="button" class="mic-btn" id="micBtn">🎙️</button>
+    </div>
+    <form id="entryForm" class="form">
+      <label id="amountLabel"></label>
+      <input type="number" id="amountInput" min="0" step="any" required>
+      <label id="reasonLabel"></label>
+      <select id="reasonSelect"></select>
+      <input type="text" id="customReason" class="custom-reason" style="display:none;">
+      <button type="submit" class="btn" id="saveBtn"></button>
+    </form>
+    <div id="profitBox"></div>
+    <div class="list-box" id="totalsBox"></div>
+    <div id="ledgerDiv"></div>
+  </div>
+
+  <!-- Setup Screen -->
+  <div class="container" id="setupContainer">
+    <div class="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 38">
+        <path d="M4 30 Q10 10 34 8" stroke="#8B5C2B" stroke-width="4" fill="none"/>
+        <rect x="29" y="8" width="6" height="12" rx="3" fill="#A2D67B"/>
+        <circle cx="32" cy="22" r="3" fill="#FFD600"/>
+      </svg>
+      <span style="font-size:38px;">💰</span>
+    </div>
+    <h2>Select Language / భాషను ఎంచుకోండి / भाषा चुनें</h2>
+    <select id="langPicker">
+      <option value="en">English</option>
+      <option value="te">తెలుగు (Telugu)</option>
+      <option value="hi">हिन्दी (Hindi)</option>
+    </select>
+    <div class="name-choose">
+      <label id="nameLabel">Enter Farmer Name / రైతు పేరు / किसान का नाम</label>
+      <input type="text" id="farmerNameInput" maxlength="20" required>
+    </div>
+    <button class="btn" id="startBtn">Start / ప్రారంభించండి / शुरू करें</button>
+    <button type="button" class="voice-btn" id="voiceSetupBtn">🔊</button>
+  </div>
+
+  <script>
+    // ---------------- LANGUAGE DATA ----------------
+    const LANGS = {
+      en: { appTitle:"Farmer Ledger", incomeMode:"Income", expenseMode:"Expense", save:"Save", amount:"Amount", reason:"Reason (choose)", customReasonPh:"Enter custom reason",
+        reasons:["Seeds","Fertilizer","Labor","Pesticide","Machinery","Transport","Other"], profitLoss:"Profit/Loss", totalIncome:"Total Income", totalExpense:"Total Expense",
+        noEntries:"No entries yet", incomeType:"Income", expenseType:"Expense", date:"Date", type:"Type", reasonCol:"Reason", amountCol:"Amount", delete:"Delete",
+        farmerHeader:"Farmer: ", voiceSetup:"Please select your language and enter your name. Click start to begin.", voiceIncome:"Income mode. Enter amount and reason, then press Save.",
+        voiceExpense:"Expense mode. Enter amount and reason, then press Save.", voiceReport:"Your current profit or loss is shown below.", voiceDelete:"Entry deleted.",
+        validAmt:"Enter valid amount.", profit:"Profit", loss:"Loss" },
+      te: { appTitle:"రైతు బహి", incomeMode:"ఆదాయం", expenseMode:"ఖర్చు", save:"సేవ్ చేయండి", amount:"రాశి", reason:"కారణం (ఎంచుకోండి)", customReasonPh:"ఇచ్చే కారణం నమోదు చేయండి",
+        reasons:["విత్తనాలు","ఎరువు","ఉద్యోగం","ఔషధం","యంత్రాలు","రవాణా","ఇతర"], profitLoss:"లాభం/నష్టం", totalIncome:"మొత్తం ఆదాయం", totalExpense:"మొత్తం ఖర్చు",
+        noEntries:"ప్రవేశాలు లేవు", incomeType:"ఆదాయం", expenseType:"ఖర్చు", date:"తేదీ", type:"రకం", reasonCol:"కారణం", amountCol:"రాశి", delete:"తొలగించు",
+        farmerHeader:"రైతు: ", voiceSetup:"మీ భాషను ఎంచుకోండి మరియు పేరు నమోదు చేయండి. ప్రారంభించండి క్లిక్ చేయండి.", voiceIncome:"ఆదాయం మోడ్. రాశి మరియు కారణం ఎంటర్ చేసి సేవ్ చేయండి.",
+        voiceExpense:"ఖర్చు మోడ్. రాశి మరియు కారణం ఎంటర్ చేసి సేవ్ చేయండి.", voiceReport:"మీ లాభం లేదా నష్టాన్ని క్రింద చూడండి.", voiceDelete:"ప్రవేశాన్ని తొలగించారు.",
+        validAmt:"సరైన రాశి ఇవ్వండి.", profit:"లాభం", loss:"నష్టం" },
+      hi: { appTitle:"किसान बही", incomeMode:"आय", expenseMode:"व्यय", save:"सहेजें", amount:"राशि", reason:"कारण (चुनें)", customReasonPh:"अपना कारण दर्ज करें",
+        reasons:["बीज","खाद","मजदूरी","दवाई","मशीनरी","परिवहन","अन्य"], profitLoss:"लाभ/हानि", totalIncome:"कुल आय", totalExpense:"कुल व्यय",
+        noEntries:"कोई प्रविष्टि नहीं", incomeType:"आय", expenseType:"व्यय", date:"तारीख", type:"प्रकार", reasonCol:"कारण", amountCol:"राशि", delete:"हटाएँ",
+        farmerHeader:"किसान: ", voiceSetup:"कृपया अपनी भाषा चुनें और नाम दर्ज करें। शुरू करें क्लिक करें।", voiceIncome:"आय मोड। राशि और कारण दर्ज करें, फिर सहेजें दबाएँ।",
+        voiceExpense:"व्यय मोड। राशि और कारण दर्ज करें, फिर सहेजें दबाएँ।", voiceReport:"आपका लाभ या हानि नीचे दिखाया गया है।", voiceDelete:"प्रविष्टि हटा दी गई।",
+        validAmt:"सही राशि डालें।", profit:"लाभ", loss:"हानि" }
+    };
+
+    // ---------------- STORAGE HELPERS ----------------
+    const getConfig = () => JSON.parse(localStorage.getItem("farmerConfig") || "null");
+    const setConfig = cfg => localStorage.setItem("farmerConfig", JSON.stringify(cfg));
+    const getEntries = () => JSON.parse(localStorage.getItem("ledgerEntries") || "[]");
+    const saveEntries = e => localStorage.setItem("ledgerEntries", JSON.stringify(e));
+
+    // ---------------- GLOBALS ----------------
+    let lang, mode = "income";
+
+    const setupContainer = document.getElementById("setupContainer");
+    const mainContainer = document.getElementById("mainContainer");
+    const langPicker = document.getElementById("langPicker");
+    const farmerNameInput = document.getElementById("farmerNameInput");
+    const startBtn = document.getElementById("startBtn");
+    const voiceSetupBtn = document.getElementById("voiceSetupBtn");
+    const farmerHeader = document.getElementById("farmerHeader");
+    const titleMain = document.getElementById("titleMain");
+    const incomeModeBtn = document.getElementById("incomeModeBtn");
+    const expenseModeBtn = document.getElementById("expenseModeBtn");
+    const voiceModeBtn = document.getElementById("voiceModeBtn");
+    const micBtn = document.getElementById("micBtn");
+    const entryForm = document.getElementById("entryForm");
+    const amountInput = document.getElementById("amountInput");
+    const reasonSelect = document.getElementById("reasonSelect");
+    const customReason = document.getElementById("customReason");
+    const saveBtn = document.getElementById("saveBtn");
+    const amountLabel = document.getElementById("amountLabel");
+    const reasonLabel = document.getElementById("reasonLabel");
+    const profitBox = document.getElementById("profitBox");
+    const totalsBox = document.getElementById("totalsBox");
+    const ledgerDiv = document.getElementById("ledgerDiv");
+
+    // ---------------- SPEECH ----------------
+    function speak(text) {
+      if (!("speechSynthesis" in window)) return;
+      const cfg = getConfig();
+      if (!cfg) return;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = cfg.language === "te" ? "te-IN" : cfg.language === "hi" ? "hi-IN" : "en-US";
+      window.speechSynthesis.speak(utter);
+    }
+
+    function listen(callback) {
+      const cfg = getConfig();
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert("Speech recognition not supported in this browser.");
+        return;
+      }
+      const recog = new SpeechRecognition();
+      recog.lang = cfg.language === "te" ? "te-IN" : cfg.language === "hi" ? "hi-IN" : "en-US";
+      recog.onresult = e => callback(e.results[0][0].transcript);
+      recog.onerror = e => alert("Voice error: " + e.error);
+      recog.start();
+    }
+
+    // ---------------- UI SETUP ----------------
+    function setupLanguage() {
+      const cfg = getConfig();
+      lang = LANGS[cfg.language];
+      incomeModeBtn.textContent = lang.incomeMode;
+      expenseModeBtn.textContent = lang.expenseMode;
+      saveBtn.textContent = lang.save;
+      amountLabel.textContent = lang.amount;
+      reasonLabel.textContent = lang.reason;
+      customReason.placeholder = lang.customReasonPh;
+      titleMain.textContent = lang.appTitle;
+      farmerHeader.textContent = lang.farmerHeader + cfg.farmerName;
+      reasonSelect.innerHTML = "";
+      lang.reasons.forEach(r => {
+        let opt = document.createElement("option");
+        opt.value = r; opt.textContent = r;
+        reasonSelect.appendChild(opt);
+      });
+      const customOpt = document.createElement("option");
+      customOpt.value = "_custom";
+      customOpt.textContent = lang.customReasonPh;
+      reasonSelect.appendChild(customOpt);
+      customReason.style.display = "none";
+    }
+
+    function showMain() {
+      setupContainer.style.display = "none";
+      mainContainer.style.display = "";
+      render();
+    }
+
+    function switchMode(m) {
+      mode = m;
+      incomeModeBtn.classList.toggle("selected", m === "income");
+      expenseModeBtn.classList.toggle("selected", m === "expense");
+      speak(m === "income" ? lang.voiceIncome : lang.voiceExpense);
+      entryForm.reset();
+      customReason.style.display = "none";
+    }
+
+    // ---------------- FORM EVENTS ----------------
+    reasonSelect.onchange = () => {
+      customReason.style.display = reasonSelect.value === "_custom" ? "" : "none";
+    };
+
+    entryForm.onsubmit = e => {
+      e.preventDefault();
+      const amt = parseFloat(amountInput.value);
+      if (isNaN(amt) || amt <= 0) return alert(lang.validAmt);
+      let reason = reasonSelect.value === "_custom" ? customReason.value.trim() : reasonSelect.value;
+      if (!reason) reason = lang.reasons.at(-1);
+      const entries = getEntries();
+      entries.push({ type: mode, amount: amt, reason, date: new Date().toISOString().slice(0,10) });
+      saveEntries(entries);
+      render();
+      entryForm.reset();
+      customReason.style.display = "none";
+      speak(lang.voiceReport);
+    };
+
+    incomeModeBtn.onclick = () => switchMode("income");
+    expenseModeBtn.onclick = () => switchMode("expense");
+    voiceModeBtn.onclick = () => speak(mode === "income" ? lang.voiceIncome : lang.voiceExpense);
+    micBtn.onclick = () => {
+      speak("Speak the amount now.");
+      listen(text => {
+        const amt = parseFloat(text.replace(/[^\d.]/g, ""));
+        if (!isNaN(amt)) amountInput.value = amt;
+        else speak(lang.validAmt);
+      });
+    };
+
+    // ---------------- SETUP SCREEN ----------------
+    startBtn.onclick = () => {
+      const language = langPicker.value;
+      const farmerName = farmerNameInput.value.trim();
+      if (!farmerName) return farmerNameInput.focus();
+      setConfig({ language, farmerName });
+      setupLanguage();
+      showMain();
+      switchMode("income");
+      speak(lang.voiceReport);
+    };
+
+    voiceSetupBtn.onclick = () => {
+      const language = langPicker.value;
+      const text = LANGS[language].voiceSetup;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = language === "te" ? "te-IN" : language === "hi" ? "hi-IN" : "en-US";
+      window.speechSynthesis.speak(utter);
+    };
+
+    // ---------------- RENDER ----------------
+    function calcPL(entries) {
+      let income = 0, expense = 0;
+      for (const e of entries) e.type === "income" ? income += e.amount : expense += e.amount;
+      return { income, expense, net: income - expense };
+    }
+
+    function render() {
+      setupLanguage();
+      const entries = getEntries();
+      const { income, expense, net } = calcPL(entries);
+      profitBox.className = net >= 0 ? "profit-box" : "loss-box";
+      const status = net >= 0 ? lang.profit : lang.loss;
+      const icon = net >= 0 ? "🟢" : "🔴";
+      profitBox.innerHTML = `<span style="font-size:32px;">${icon}</span><br>
+        <b>${lang.profitLoss}:</b> ₹${net.toFixed(2)} (${status})`;
+      totalsBox.innerHTML = `<b>${lang.totalIncome}:</b> ₹${income.toFixed(2)}<br>
+        <b>${lang.totalExpense}:</b> ₹${expense.toFixed(2)}`;
+      if (!entries.length) return ledgerDiv.innerHTML = `<i>${lang.noEntries}</i>`;
+      ledgerDiv.innerHTML = `
+        <table class="ledger-table">
+          <tr><th>${lang.date}</th><th>${lang.type}</th><th>${lang.reasonCol}</th><th>${lang.amountCol}</th><th></th></tr>
+          ${entries.map((e,i)=>`
+            <tr>
+              <td>${e.date}</td>
+              <td>${e.type==="income"?"💰 "+lang.incomeType:"💸 "+lang.expenseType}</td>
+              <td>${e.reason}</td>
+              <td>₹${e.amount.toFixed(2)}</td>
+              <td><button class="del-btn" onclick="deleteEntry(${i})">${lang.delete}</button></td>
+            </tr>`).join("")}
+        </table>`;
+    }
+
+    window.deleteEntry = function(idx){
+      const entries = getEntries();
+      entries.splice(idx,1);
+      saveEntries(entries);
+      render();
+      speak(lang.voiceDelete);
+    }
+
+    // ---------------- INIT ----------------
+    window.onload = function(){
+      // Clear previous data for fresh start every time
+      localStorage.removeItem("farmerConfig");
+      localStorage.removeItem("ledgerEntries");
+      setupContainer.style.display = "";
+      mainContainer.style.display = "none";
+    };
+  </script>
+</body>
+</html>
